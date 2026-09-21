@@ -9,7 +9,7 @@ let flip : 'a 'b 'c 'e. ('a -> 'b -['e]-> 'c) -> 'b -> 'a -['e]-> 'c =
 let negate : 'a 'e. ('a -['e]-> bool) -> 'a -['e]-> bool =
   fun p x -> not (p x)
 
-let protect : 'a 'e. finally:(unit -['e]-> unit) -> (unit -['e]-> 'a) -['e]-> 'a =
+let protect : 'a 'e. finally:(unit -> unit) -> (unit -['e]-> 'a) -['e]-> 'a =
   fun ~finally work ->
     let res =
       try work ()

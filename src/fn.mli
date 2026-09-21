@@ -8,4 +8,4 @@ val flip : ('a -> 'b -['e]-> 'c) -> ('b -> 'a -['e]-> 'c)
 
 val negate : ('a -['e]-> bool) -> ('a -['e]-> bool)
 
-val protect : finally:(unit -['e]-> unit) -> (unit -['e]-> 'a) -['e]-> 'a
+val protect : finally:(unit -> unit) -> (unit -['e]-> 'a) -['e]-> 'a
