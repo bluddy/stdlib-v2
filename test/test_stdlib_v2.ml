@@ -109,6 +109,21 @@ let () =
   assert (res_seq_fold = 9);
   assert (logs_seq = ["seq_1"; "seq_2"; "seq_3"]);
 
+  (* Effectful Seq *)
+  let eff_seq : (int, -[ Incr, Log ]-) Seq.eff =
+    fun () ->
+      Effect.perform (Log "gen_1");
+      Seq.Cons (Effect.perform (Incr 10), fun () ->
+        Effect.perform (Log "gen_2");
+        Seq.Cons (Effect.perform (Incr 20), fun () -> Seq.Nil))
+  in
+  let res_eff_list, logs_eff_seq = run_handler (fun () ->
+    List.of_seq (Seq.take 2 eff_seq)
+  ) in
+  assert (res_eff_list = [11; 21]);
+  assert (logs_eff_seq = ["gen_1"; "gen_2"]);
+
+
   (* --- 6. Fun (protect) --- *)
   let finally_called = ref false in
   let res_prot, _ = run_handler (fun () ->

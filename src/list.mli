@@ -55,3 +55,7 @@ val sort : ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list
 val stable_sort : ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list
 val fast_sort : ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list
 val sort_uniq : ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list
+
+val to_seq : 'a list -> 'a Seq.t
+val of_seq : ('a, 'e) Seq.eff -['e]-> 'a list
+

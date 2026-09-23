@@ -277,3 +277,16 @@ let sort_uniq : 'a 'e. ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list =
           if cmp x y = 0 then uniq rest else x :: uniq rest
     in
     uniq sorted
+
+let of_seq : 'a 'e. ('a, 'e) Seq.eff -['e]-> 'a list =
+  fun seq ->
+    let rec aux acc seq =
+      match seq () with
+      | Seq.Nil -> rev acc
+      | Seq.Cons (x, next) -> aux (x :: acc) next
+    in
+    aux [] seq
+
+let rec to_seq = function
+  | [] -> Seq.empty
+  | x :: xs -> Seq.cons x (to_seq xs)
