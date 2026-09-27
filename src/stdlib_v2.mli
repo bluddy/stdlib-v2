@@ -15,6 +15,10 @@ module Stack : module type of Stack
 module Hashtbl : module type of Hashtbl
 module Map : module type of Map
 module Set : module type of Set
+module ListLabels : module type of ListLabels
+module ArrayLabels : module type of ArrayLabels
+module StringLabels : module type of StringLabels
+module BytesLabels : module type of BytesLabels
 
 include module type of Stdlib
   with module List := Stdlib.List
@@ -34,8 +38,13 @@ include module type of Stdlib
   and module Hashtbl := Stdlib.Hashtbl
   and module Map := Stdlib.Map
   and module Set := Stdlib.Set
+  and module ListLabels := Stdlib.ListLabels
+  and module ArrayLabels := Stdlib.ArrayLabels
+  and module StringLabels := Stdlib.StringLabels
+  and module BytesLabels := Stdlib.BytesLabels
   and type ('a, 'b) result = ('a, 'b) Stdlib.result
   and type open_flag = Stdlib.open_flag
   and type fpclass = Stdlib.fpclass
   and type in_channel = Stdlib.in_channel
   and type out_channel = Stdlib.out_channel
+

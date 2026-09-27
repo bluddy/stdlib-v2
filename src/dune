@@ -1,4 +1,5 @@
 (library
  (name stdlib_v2)
  (public_name stdlib_v2)
- (modules list array option seq result fn string bytes in_channel out_channel either buffer queue stack hashtbl map set stdlib_v2))
+ (flags :standard -nolabels)
+ (modules list listLabels array arrayLabels option seq result fn string stringLabels bytes bytesLabels in_channel out_channel either buffer queue stack hashtbl map set stdlib_v2))

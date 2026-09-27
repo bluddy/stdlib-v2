@@ -16,6 +16,11 @@ module H = Hashtbl
 module M = Map
 module St = Set
 
+module LL = ListLabels
+module AL = ArrayLabels
+module SL = StringLabels
+module BL = BytesLabels
+
 include Stdlib
 
 module List = L
@@ -35,3 +40,8 @@ module Stack = Stk
 module Hashtbl = H
 module Map = M
 module Set = St
+module ListLabels = LL
+module ArrayLabels = AL
+module StringLabels = SL
+module BytesLabels = BL
+

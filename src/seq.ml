@@ -16,11 +16,33 @@ module E : sig
   val drop_while : ('a -['e]-> bool) -> ('a, 'e) eff -> ('a, 'e) eff
   val of_pure_seq : 'a t -> ('a, 'e) eff
   val of_stdlib_seq : 'a Stdlib.Seq.t -> ('a, 'e) eff
+  val repeat : 'a -> ('a, 'e) eff
+  val ints : int -> (int, 'e) eff
+  val ints_in_range : first:int -> last:int -> (int, 'e) eff
 end = struct
   let empty () = Nil
   let cons x next () = Cons (x, next)
 
+  let repeat : 'a 'e. 'a -> ('a, 'e) eff =
+    fun x ->
+      let rec aux () : ('a, 'e) node = Cons (x, aux) in
+      aux
+
+  let ints : 'e. int -> (int, 'e) eff =
+    fun i ->
+      let rec aux i () : (int, 'e) node = Cons (i, aux (i + 1)) in
+      aux i
+
+  let ints_in_range : 'e. first:int -> last:int -> (int, 'e) eff =
+    fun ~first ~last ->
+      let rec aux i () : (int, 'e) node =
+        if last >= i then Cons (i, aux (i + 1))
+        else Nil
+      in
+      aux first
+
   let of_pure_seq : 'a 'e. 'a t -> ('a, 'e) eff =
+
     fun s ->
       let rec aux (s : 'a t) () : ('a, 'e) node =
         match s () with
@@ -78,6 +100,9 @@ let iterate = E.iterate
 let forever = E.forever
 let take_while = E.take_while
 let drop_while = E.drop_while
+let repeat = E.repeat
+let ints = E.ints
+let ints_in_range = E.ints_in_range
 let return x = cons x empty
 let singleton = return
 
@@ -453,10 +478,12 @@ let memoize (seq : 'a t) : 'a t =
   in
   memo seq
 
+exception Forced_twice
+
 let once seq =
   let consumed = ref false in
-  fun () ->
-    if !consumed then raise (Invalid_argument "sequence can only be consumed once")
+  let aux () =
+    if !consumed then raise Forced_twice
     else (
       match seq () with
       | Nil -> Nil
@@ -464,6 +491,116 @@ let once seq =
           consumed := true;
           Cons (x, next)
     )
+  in
+  aux
+
+let is_empty xs =
+  match xs () with
+  | Nil -> true
+  | Cons _ -> false
+
+let uncons xs =
+  match xs () with
+  | Nil -> None
+  | Cons (x, xs) -> Some (x, xs)
+
+let length xs =
+  let rec aux acc xs =
+    match xs () with
+    | Nil -> acc
+    | Cons (_, xs) -> aux (acc + 1) xs
+  in
+  aux 0 xs
+
+let cycle_nonempty xs () =
+  let rec tl () = append xs tl () in tl ()
+
+let cycle xs =
+  let aux () =
+    match xs () with
+    | Nil -> Nil
+    | Cons (x, xs') -> Cons (x, append xs' (cycle_nonempty xs))
+  in
+  aux
+
+let delay delayed_seq () = delayed_seq () ()
+
+let rec interleave xs ys () =
+  match xs () with
+  | Nil -> ys ()
+  | Cons (x, xs) -> Cons (x, interleave ys xs)
+
+let rec sorted_merge1l : 'a 'e. ('a -> 'a -['e]-> int) -> 'a -> ('a, 'e) eff -> ('a, 'e) eff -> ('a, 'e) eff =
+  fun cmp x xs ys () ->
+    match ys () with
+    | Nil -> Cons (x, xs)
+    | Cons (y, ys) -> sorted_merge1 cmp x xs y ys
+
+and sorted_merge1r : 'a 'e. ('a -> 'a -['e]-> int) -> ('a, 'e) eff -> 'a -> ('a, 'e) eff -> ('a, 'e) eff =
+  fun cmp xs y ys () ->
+    match xs () with
+    | Nil -> Cons (y, ys)
+    | Cons (x, xs) -> sorted_merge1 cmp x xs y ys
+
+and sorted_merge1 : 'a 'e. ('a -> 'a -['e]-> int) -> 'a -> ('a, 'e) eff -> 'a -> ('a, 'e) eff -['e]-> ('a, 'e) node =
+  fun cmp x xs y ys ->
+    if cmp x y <= 0 then
+      Cons (x, sorted_merge1r cmp xs y ys)
+    else
+      Cons (y, sorted_merge1l cmp x xs ys)
+
+let sorted_merge : 'a 'e. ('a -> 'a -['e]-> int) -> ('a, 'e) eff -> ('a, 'e) eff -> ('a, 'e) eff =
+  fun cmp xs ys () ->
+    match xs (), ys () with
+    | Nil, Nil -> Nil
+    | Nil, Cons (y, ys') -> Cons (y, ys')
+    | Cons (x, xs'), Nil -> Cons (x, xs')
+    | Cons (x, xs), Cons (y, ys) -> sorted_merge1 cmp x xs y ys
+
+let rec map_fst xys () =
+  match xys () with
+  | Nil -> Nil
+  | Cons ((x, _), xys) -> Cons (x, map_fst xys)
+
+let rec map_snd xys () =
+  match xys () with
+  | Nil -> Nil
+  | Cons ((_, y), xys) -> Cons (y, map_snd xys)
+
+let unzip xys = map_fst xys, map_snd xys
+let split = unzip
+
+let rec group : 'a 'e. ('a -> 'a -['e]-> bool) -> ('a, 'e) eff -> (('a, 'e) eff, 'e) eff =
+  fun eq xs () ->
+    match xs () with
+    | Nil -> Nil
+    | Cons (x, xs) ->
+        Cons (cons x (take_while (eq x) xs), group eq (drop_while (eq x) xs))
+
+let peel xss = unzip (filter_map uncons xss)
+
+let rec transpose xss () =
+  let heads, tails = peel xss in
+  if is_empty heads then Nil
+  else Cons (heads, transpose tails)
+
+let rec diagonals remainders xss () =
+  match xss () with
+  | Cons (xs, xss) -> (
+      match xs () with
+      | Cons (x, xs) ->
+          let heads, tails = peel remainders in
+          Cons (cons x heads, diagonals (cons xs tails) xss)
+      | Nil ->
+          let heads, tails = peel remainders in
+          Cons (heads, diagonals tails xss))
+  | Nil -> transpose remainders ()
+
+let map_product : 'a 'b 'c 'e. ('a -> 'b -['e]-> 'c) -> ('a, 'e) eff -> ('b, 'e) eff -> ('c, 'e) eff =
+  fun f xs ys ->
+    concat (diagonals empty (map (fun x -> map (fun y -> f x y) ys) xs))
+
+let product xs ys = map_product (fun x y -> (x, y)) xs ys
 
 let rec to_stdlib (seq : 'a t) : 'a Stdlib.Seq.t =
   fun () ->

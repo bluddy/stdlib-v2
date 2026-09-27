@@ -95,5 +95,29 @@ val concat_map : ('a -['e]-> ('b, 'e) eff) -> ('a, 'e) eff -> ('b, 'e) eff
 val memoize : 'a t -> 'a t
 val once : ('a, 'e) eff -> ('a, 'e) eff
 
+val is_empty : ('a, 'e) eff -['e]-> bool
+val uncons : ('a, 'e) eff -['e]-> ('a * ('a, 'e) eff) option
+val length : ('a, 'e) eff -['e]-> int
+
+val repeat : 'a -> ('a, 'e) eff
+val cycle : ('a, 'e) eff -> ('a, 'e) eff
+val delay : (unit -['e]-> ('a, 'e) eff) -> ('a, 'e) eff
+
+val group : ('a -> 'a -['e]-> bool) -> ('a, 'e) eff -> (('a, 'e) eff, 'e) eff
+val transpose : (('a, 'e) eff, 'e) eff -> (('a, 'e) eff, 'e) eff
+val interleave : ('a, 'e) eff -> ('a, 'e) eff -> ('a, 'e) eff
+val sorted_merge : ('a -> 'a -['e]-> int) -> ('a, 'e) eff -> ('a, 'e) eff -> ('a, 'e) eff
+
+val product : ('a, 'e) eff -> ('b, 'e) eff -> ('a * 'b, 'e) eff
+val map_product : ('a -> 'b -['e]-> 'c) -> ('a, 'e) eff -> ('b, 'e) eff -> ('c, 'e) eff
+val unzip : ('a * 'b, 'e) eff -> ('a, 'e) eff * ('b, 'e) eff
+val split : ('a * 'b, 'e) eff -> ('a, 'e) eff * ('b, 'e) eff
+
+val ints : int -> (int, 'e) eff
+val ints_in_range : first:int -> last:int -> (int, 'e) eff
+
+exception Forced_twice
+
 val to_stdlib : 'a t -> 'a Stdlib.Seq.t
 val of_stdlib : 'a Stdlib.Seq.t -> 'a t
+
