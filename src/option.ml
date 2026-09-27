@@ -28,3 +28,7 @@ let exists p = function
 let filter p = function
   | Some v as o when p v -> o
   | _ -> None
+
+let to_seq = function
+  | None -> Seq.empty
+  | Some v -> Seq.return v

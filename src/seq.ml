@@ -5,11 +5,18 @@ and ('a, 'e) node =
 
 type 'a t = ('a, -[]-) eff
 
-let empty () = Nil
+module E : sig
+  val empty : ('a, 'e) eff
+  val cons : 'a -> ('a, 'e) eff -> ('a, 'e) eff
+end = struct
+  let empty () = Nil
+  let cons x next () = Cons (x, next)
+end
 
-let return x () = Cons (x, empty)
-
-let cons x next () = Cons (x, next)
+let empty = E.empty
+let cons = E.cons
+let return x = cons x empty
+let singleton = return
 
 let rec of_dispenser f () =
   match f () with

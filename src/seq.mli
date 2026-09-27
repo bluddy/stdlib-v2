@@ -7,14 +7,15 @@ and ('a, 'e) node =
 
 type 'a t = ('a, -[]-) eff
 
-val empty : 'a t
-val return : 'a -> 'a t
+val empty : ('a, 'e) eff
+val return : 'a -> ('a, 'e) eff
+val singleton : 'a -> ('a, 'e) eff
 val cons : 'a -> ('a, 'e) eff -> ('a, 'e) eff
 
 val of_dispenser : (unit -['e]-> 'a option) -> ('a, 'e) eff
 val to_dispenser : ('a, 'e) eff -> (unit -['e]-> 'a option)
 
-val of_list : 'a list -> 'a t
+val of_list : 'a list -> ('a, 'e) eff
 val to_list : ('a, 'e) eff -['e]-> 'a list
 
 val take : int -> ('a, 'e) eff -> ('a, 'e) eff

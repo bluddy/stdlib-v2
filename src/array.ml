@@ -219,3 +219,22 @@ let stable_sort : 'a 'e. ('a -> 'a -['e]-> int) -> 'a array -['e]-> unit =
     copy_back 0 l_sorted
 
 let fast_sort = sort
+
+let to_seq a =
+  let len = length a in
+  let rec aux i =
+    if i >= len then Seq.empty
+    else Seq.cons (get a i) (aux (i + 1))
+  in
+  aux 0
+
+let to_seqi a =
+  let len = length a in
+  let rec aux i =
+    if i >= len then Seq.empty
+    else Seq.cons (i, get a i) (aux (i + 1))
+  in
+  aux 0
+
+let of_seq : 'a 'e. ('a, 'e) Seq.eff -['e]-> 'a array =
+  fun seq -> of_list (List.of_seq seq)

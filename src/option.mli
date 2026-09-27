@@ -15,3 +15,5 @@ val for_all : ('a -['e]-> bool) -> 'a option -['e]-> bool
 val exists : ('a -['e]-> bool) -> 'a option -['e]-> bool
 
 val filter : ('a -['e]-> bool) -> 'a option -['e]-> 'a option
+
+val to_seq : 'a option -> ('a, 'e) Seq.eff

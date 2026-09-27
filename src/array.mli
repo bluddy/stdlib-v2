@@ -31,3 +31,7 @@ val find_mapi : (int -> 'a -['e]-> 'b option) -> 'a array -['e]-> 'b option
 val sort : ('a -> 'a -['e]-> int) -> 'a array -['e]-> unit
 val stable_sort : ('a -> 'a -['e]-> int) -> 'a array -['e]-> unit
 val fast_sort : ('a -> 'a -['e]-> int) -> 'a array -['e]-> unit
+
+val to_seq : 'a array -> ('a, 'e) Seq.eff
+val to_seqi : 'a array -> (int * 'a, 'e) Seq.eff
+val of_seq : ('a, 'e) Seq.eff -['e]-> 'a array

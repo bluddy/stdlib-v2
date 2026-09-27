@@ -123,6 +123,25 @@ let () =
   assert (res_eff_list = [11; 21]);
   assert (logs_eff_seq = ["gen_1"; "gen_2"]);
 
+  (* Test interoperability of Seq.empty, Seq.return, List.to_seq, Array.to_seq, Option.to_seq with eff_seq *)
+  let res_interop, _ = run_handler (fun () ->
+    let s1 = Seq.append Seq.empty eff_seq in
+    let s2 = Seq.append (Seq.return 1) s1 in
+    let s3 = Seq.append (List.to_seq [2; 3]) s2 in
+    let s4 = Seq.append (Array.to_seq [| 4; 5 |]) s3 in
+    let s5 = Seq.append (Option.to_seq (Some 6)) s4 in
+    let arr = Array.of_seq (Seq.take 8 s5) in
+    arr
+  ) in
+  assert (res_interop = [| 6; 4; 5; 2; 3; 1; 11; 21 |]);
+
+  (* Test Array.to_seqi *)
+  let arr_seqi = Array.to_seqi [| "a"; "b" |] in
+  assert (List.of_seq arr_seqi = [(0, "a"); (1, "b")]);
+
+  (* Test Option.to_seq with None *)
+  assert (List.of_seq (Option.to_seq None) = []);
+
 
   (* --- 6. Fun (protect) --- *)
   let finally_called = ref false in
