@@ -12,8 +12,14 @@ val mapi : (int -> 'a -['e]-> 'b) -> 'a array -['e]-> 'b array
 
 val fold_left : ('acc -> 'a -['e]-> 'acc) -> 'acc -> 'a array -['e]-> 'acc
 val fold_right : ('a -> 'acc -['e]-> 'acc) -> 'a array -> 'acc -['e]-> 'acc
+val fold_lefti : ('acc -> int -> 'a -['e]-> 'acc) -> 'acc -> 'a array -['e]-> 'acc
+val fold_righti : (int -> 'a -> 'acc -['e]-> 'acc) -> 'a array -> 'acc -['e]-> 'acc
 val fold_left_map :
   ('acc -> 'a -['e]-> 'acc * 'b) -> 'acc -> 'a array -['e]-> 'acc * 'b array
+
+val filter : ('a -['e]-> bool) -> 'a array -['e]-> 'a array
+val filter_map : ('a -['e]-> 'b option) -> 'a array -['e]-> 'b array
+val concat_map : ('a -['e]-> 'b array) -> 'a array -['e]-> 'b array
 
 val iter2 : ('a -> 'b -['e]-> unit) -> 'a array -> 'b array -['e]-> unit
 val map2 : ('a -> 'b -['e]-> 'c) -> 'a array -> 'b array -['e]-> 'c array

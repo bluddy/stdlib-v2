@@ -152,5 +152,203 @@ let () =
   ) in
   assert (res_prot = 42);
   assert (!finally_called);
+  (* --- 7. String --- *)
+  assert (String.map Char.uppercase_ascii "abc" = "ABC");
+  let str_eff, logs_str = run_handler (fun () ->
+    String.map (fun c ->
+      Effect.perform (Log (String.make 1 c));
+      Char.chr (Char.code c + 1)
+    ) "abc"
+  ) in
+  assert (str_eff = "bcd");
+  assert (logs_str = ["a"; "b"; "c"]);
+
+  let str_seq = String.to_seq "hello" in
+  assert (String.of_seq str_seq = "hello");
+
+  let str_seqi = String.to_seqi "ab" in
+  assert (List.of_seq str_seqi = [(0, 'a'); (1, 'b')]);
+
+  let res_str_fold, _ = run_handler (fun () ->
+    String.fold_left (fun acc c ->
+      acc + Effect.perform (Incr (Char.code c))
+    ) 0 "A"
+  ) in
+  assert (res_str_fold = 66); (* 65 + 1 = 66 *)
+
+  (* --- 8. Bytes --- *)
+  let b = Bytes.of_string "foo" in
+  assert (Bytes.map Char.uppercase_ascii b = Bytes.of_string "FOO");
+  let bytes_eff, _ = run_handler (fun () ->
+    Bytes.map (fun c ->
+      let delta = Effect.perform Ask in
+      Char.chr (Char.code c + (delta - 100))
+    ) b
+  ) in
+  assert (Bytes.to_string bytes_eff = "foo");
+
+  let b_seq = Bytes.to_seq (Bytes.of_string "world") in
+  assert (Bytes.to_string (Bytes.of_seq b_seq) = "world");
+
+  (* --- 9. In_channel / Out_channel --- *)
+  let temp_path = Filename.temp_file "stdlib_v2_test" ".txt" in
+  let () =
+    let _, _ = run_handler (fun () ->
+      Out_channel.with_open_text temp_path (fun oc ->
+        Effect.perform (Log "writing");
+        Out_channel.output_string oc "line1\nline2\n"
+      )
+    ) in
+    let lines, _ = run_handler (fun () ->
+      In_channel.with_open_text temp_path (fun ic ->
+        Effect.perform (Log "reading");
+        In_channel.fold_lines (fun acc line ->
+          Effect.perform (Incr 0) |> ignore;
+          line :: acc
+        ) [] ic
+      )
+    ) in
+    assert (lines = ["line2"; "line1"]);
+    Sys.remove temp_path
+  in
+
+  (* --- 10. Either --- *)
+  let e1 = Either.Left 10 in
+  let e2 = Either.Right "hello" in
+  let res_e1, _ = run_handler (fun () ->
+    Either.map_left (fun x -> Effect.perform (Incr x)) e1
+  ) in
+  assert (res_e1 = Either.Left 11);
+  let res_e2, _ = run_handler (fun () ->
+    Either.map_right (fun s -> Effect.perform (Log s); s ^ "!") e2
+  ) in
+  assert (res_e2 = Either.Right "hello!");
+
+  (* --- 11. Buffer --- *)
+  let buf = Buffer.create 16 in
+  let (), _ = run_handler (fun () ->
+    Buffer.add_substitute buf (fun var ->
+      Effect.perform (Log var);
+      string_of_int (Effect.perform Ask)
+    ) "Value is $val!"
+  ) in
+  assert (Buffer.contents buf = "Value is 100!");
+  let buf_seq = Buffer.to_seq buf in
+  let buf2 = Buffer.of_seq buf_seq in
+  assert (Buffer.contents buf2 = "Value is 100!");
+
+  (* --- 12. Queue --- *)
+  let q = Queue.create () in
+  Queue.push 1 q;
+  Queue.push 2 q;
+  let q_sum = ref 0 in
+  let (), _ = run_handler (fun () ->
+    Queue.iter (fun x ->
+      q_sum := !q_sum + Effect.perform (Incr x)
+    ) q
+  ) in
+  assert (!q_sum = 5); (* (1+1) + (2+1) = 5 *)
+  let q_seq = Queue.to_seq q in
+  let q_from_seq = Queue.of_seq q_seq in
+  assert (Queue.length q_from_seq = 2);
+  assert (Queue.pop q_from_seq = 1);
+  assert (Queue.pop q_from_seq = 2);
+
+  (* --- 13. Stack --- *)
+  let stk = Stack.create () in
+  Stack.push 10 stk;
+  Stack.push 20 stk;
+  let stk_sum = ref 0 in
+  let (), _ = run_handler (fun () ->
+    Stack.iter (fun x ->
+      stk_sum := !stk_sum + Effect.perform (Incr x)
+    ) stk
+  ) in
+  assert (!stk_sum = 32); (* (20+1) + (10+1) = 32 *)
+  let stk_from_seq = Stack.of_seq (Stack.to_seq stk) in
+  assert (Stack.pop stk_from_seq = 10);
+  assert (Stack.pop stk_from_seq = 20);
+
+  (* --- 14. Hashtbl --- *)
+  let ht = Hashtbl.create 8 in
+  Hashtbl.add ht "a" 1;
+  Hashtbl.add ht "b" 2;
+  let ht_sum = ref 0 in
+  let (), _ = run_handler (fun () ->
+    Hashtbl.iter (fun _k v ->
+      ht_sum := !ht_sum + Effect.perform (Incr v)
+    ) ht
+  ) in
+  assert (!ht_sum = 5); (* 2 + 3 = 5 *)
+
+  let (), _ = run_handler (fun () ->
+    Hashtbl.filter_map_inplace (fun _k v ->
+      Some (Effect.perform (Incr v))
+    ) ht
+  ) in
+  assert (Hashtbl.find ht "a" = 2);
+  assert (Hashtbl.find ht "b" = 3);
+
+  let ht_seq = Hashtbl.to_seq ht in
+  let ht_copy = Hashtbl.of_seq ht_seq in
+  assert (Hashtbl.find ht_copy "a" = 2);
+  assert (Hashtbl.find ht_copy "b" = 3);
+
+  (* Hashtbl.Make *)
+  let module IntHashtbl = Hashtbl.Make (struct
+    type t = int
+    let equal = Int.equal
+    let hash = Hashtbl.hash
+  end) in
+  let iht = IntHashtbl.create 8 in
+  IntHashtbl.add iht 42 "forty-two";
+  let iht_seq = IntHashtbl.to_seq iht in
+  let iht_copy = IntHashtbl.of_seq iht_seq in
+  assert (IntHashtbl.find iht_copy 42 = "forty-two");
+
+  (* --- 15. Map --- *)
+  let module IntMap = Map.Make (Int) in
+  let m = IntMap.empty |> IntMap.add 1 "one" |> IntMap.add 2 "two" in
+  let m_eff, _ = run_handler (fun () ->
+    IntMap.map (fun v ->
+      let d = Effect.perform Ask in
+      v ^ string_of_int d
+    ) m
+  ) in
+  assert (IntMap.find 1 m_eff = "one100");
+  assert (IntMap.find 2 m_eff = "two100");
+
+  let m_seq = IntMap.to_seq m in
+  let m_copy = IntMap.of_seq m_seq in
+  assert (IntMap.equal ( = ) m m_copy);
+
+  let (found_k, found_v) = run_handler (fun () ->
+    IntMap.find_first (fun k ->
+      Effect.perform (Log ("check " ^ string_of_int k));
+      k >= 2
+    ) m
+  ) |> fst in
+  assert (found_k = 2);
+  assert (found_v = "two");
+
+  (* --- 16. Set --- *)
+  let module IntSet = Set.Make (Int) in
+  let set = IntSet.empty |> IntSet.add 1 |> IntSet.add 2 |> IntSet.add 3 in
+  let set_eff, _ = run_handler (fun () ->
+    IntSet.map (fun x -> Effect.perform (Incr x)) set
+  ) in
+  assert (IntSet.elements set_eff = [2; 3; 4]);
+
+  let set_seq = IntSet.to_seq set in
+  let set_copy = IntSet.of_seq set_seq in
+  assert (IntSet.equal set set_copy);
+
+  let first_even = run_handler (fun () ->
+    IntSet.find_first (fun x ->
+      Effect.perform (Log ("set_check " ^ string_of_int x));
+      x mod 2 = 0
+    ) set
+  ) |> fst in
+  assert (first_even = 2);
 
   print_endline "All Stdlib_v2 tests passed successfully!"

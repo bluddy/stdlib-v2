@@ -61,6 +61,36 @@ let fold_right : 'a 'acc 'e. ('a -> 'acc -['e]-> 'acc) -> 'a array -> 'acc -['e]
     done;
     !acc
 
+let fold_lefti : 'a 'acc 'e. ('acc -> int -> 'a -['e]-> 'acc) -> 'acc -> 'a array -['e]-> 'acc =
+  fun f init a ->
+    let acc = ref init in
+    for i = 0 to length a - 1 do
+      acc := f !acc i (get a i)
+    done;
+    !acc
+
+let fold_righti : 'a 'acc 'e. (int -> 'a -> 'acc -['e]-> 'acc) -> 'a array -> 'acc -['e]-> 'acc =
+  fun f a init ->
+    let acc = ref init in
+    for i = length a - 1 downto 0 do
+      acc := f i (get a i) !acc
+    done;
+    !acc
+
+let filter : 'a 'e. ('a -['e]-> bool) -> 'a array -['e]-> 'a array =
+  fun p a ->
+    let l = fold_right (fun x acc -> if p x then x :: acc else acc) a [] in
+    of_list l
+
+let filter_map : 'a 'b 'e. ('a -['e]-> 'b option) -> 'a array -['e]-> 'b array =
+  fun f a ->
+    let l = fold_right (fun x acc -> match f x with Some y -> y :: acc | None -> acc) a [] in
+    of_list l
+
+let concat_map : 'a 'b 'e. ('a -['e]-> 'b array) -> 'a array -['e]-> 'b array =
+  fun f a ->
+    concat (to_list (map f a))
+
 let fold_left_map : 'a 'b 'acc 'e. ('acc -> 'a -['e]-> 'acc * 'b) -> 'acc -> 'a array -['e]-> 'acc * 'b array =
   fun f init a ->
     let len = length a in

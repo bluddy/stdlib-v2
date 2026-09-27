@@ -278,6 +278,15 @@ let sort_uniq : 'a 'e. ('a -> 'a -['e]-> int) -> 'a list -['e]-> 'a list =
     in
     uniq sorted
 
+let rec merge : 'a 'e. ('a -> 'a -['e]-> int) -> 'a list -> 'a list -['e]-> 'a list =
+  fun cmp l1 l2 ->
+    match l1, l2 with
+    | [], l -> l
+    | l, [] -> l
+    | h1 :: t1, h2 :: t2 ->
+        if cmp h1 h2 <= 0 then h1 :: merge cmp t1 l2
+        else h2 :: merge cmp l1 t2
+
 let of_seq : 'a 'e. ('a, 'e) Seq.eff -['e]-> 'a list =
   fun seq ->
     let rec aux acc seq =
